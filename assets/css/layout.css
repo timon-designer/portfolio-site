@@ -1,0 +1,888 @@
+/* =========================================================
+   03 · 布局层：容器、网格、页头、菜单、页脚、加载、光标、转场
+   ========================================================= */
+
+/* ---------- 容器 ---------- */
+.container {
+  width: 100%;
+  max-width: var(--max-w);
+  margin-inline: auto;
+  padding-inline: var(--pad-x);
+}
+.container--medium { max-width: var(--max-w-text); }
+.container--narrow { max-width: 880px; }
+.container--flush  { padding-inline: 0; }
+
+/* ---------- 区块 ---------- */
+.section {
+  position: relative;
+  padding-block: var(--sec-y);
+}
+.section--tight { padding-block: var(--sec-y-sm); }
+.section--flush { padding-block: 0; }
+.section--alt { background: var(--bg-alt); }
+
+/* ---------- 弹性栅格 ----------
+   DNS 的布局本质是一条 12 栏栅格，小屏折成一栏。
+   这里用 flex + gap 实现，语义比 grid 更直白。 */
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-6);
+}
+.row--between { justify-content: space-between; align-items: flex-end; }
+.row--center  { align-items: center; }
+.col { flex: 1 1 0; min-width: 0; }
+.col--1-2 { flex: 0 0 calc(50% - var(--sp-6) / 2); max-width: calc(50% - var(--sp-6) / 2); }
+.col--1-3 { flex: 0 0 calc(33.333% - var(--sp-6) * 2 / 3); max-width: calc(33.333% - var(--sp-6) * 2 / 3); }
+.col--2-3 { flex: 0 0 calc(66.666% - var(--sp-6) / 3); max-width: calc(66.666% - var(--sp-6) / 3); }
+.col--1-4 { flex: 0 0 calc(25% - var(--sp-6) * 3 / 4); max-width: calc(25% - var(--sp-6) * 3 / 4); }
+.col--auto { flex: 0 0 auto; }
+
+/* 区块小标题行（左标题 / 右说明） */
+.sec-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: var(--sp-6);
+  margin-bottom: var(--sp-6);
+}
+.sec-desc {
+  max-width: 46ch;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+
+/* =========================================================
+   页头
+   ========================================================= */
+.site-head {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: var(--z-head);
+  padding-block: var(--sp-4);
+  transition: transform var(--t-mid) var(--e), background-color var(--t-mid) var(--e),
+              backdrop-filter var(--t-mid) var(--e), padding var(--t-mid) var(--e);
+}
+.site-head.is-scrolled {
+  padding-block: var(--sp-3);
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  backdrop-filter: blur(14px) saturate(1.2);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  border-bottom: 1px solid var(--border-soft);
+}
+.site-head.is-hidden { transform: translateY(-100%); }
+/* 菜单打开时页头要藏起来，避免和浮层打架 */
+.site-head.is-behind { transform: translateY(-100%); opacity: 0; }
+
+.head-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-5);
+  width: 100%;
+  max-width: var(--max-w);
+  margin-inline: auto;
+  padding-inline: var(--pad-x);
+}
+
+/* 左侧署名：© + 名字 */
+.head-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-3);
+  font-size: var(--fs-small);
+}
+.head-logo .mark {
+  display: grid;
+  place-items: center;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  transition: background-color var(--t-fast) var(--e), color var(--t-fast) var(--e),
+              border-color var(--t-fast) var(--e);
+}
+.head-logo:hover .mark { background: var(--accent); border-color: var(--accent); color: #fff; }
+.head-logo .who { display: inline-flex; gap: 0.4em; align-items: baseline; }
+.head-logo .who em { font-style: normal; color: var(--fg-muted); }
+
+.head-right { display: flex; align-items: center; gap: var(--sp-2); }
+
+/* 导航按钮：只做磁吸位移 + 底色/描边反馈，不要文字滚动
+   （滚动换行 0.58s 和磁吸位移叠加，hover 起来像卡住一样） */
+.nav-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: 9px 16px;
+  border-radius: var(--r-pill);
+  border: 1px solid transparent;
+  font-size: var(--fs-small);
+  transition: border-color .18s var(--e), background-color .18s var(--e), color .18s var(--e);
+}
+.nav-btn:hover { border-color: var(--border); background: var(--row-hover); }
+.nav-btn.is-active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.nav-btn--cta { border-color: var(--border); }
+.nav-btn--cta:hover { background: var(--accent); border-color: var(--accent); }
+.nav-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent);
+  animation: pulse 2.4s var(--e) infinite;
+}
+.nav-btn--cta:hover .nav-dot { background: #fff; }
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: .35; transform: scale(.7); }
+}
+
+/* 汉堡菜单按钮 */
+.burger {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 16px 9px 14px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border);
+  font-size: var(--fs-small);
+}
+.burger:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+.burger-bars {
+  display: grid;
+  gap: 4px;
+  width: 16px;
+}
+.burger-bars i {
+  display: block;
+  height: 1.5px;
+  background: currentColor;
+  transition: transform var(--t-fast) var(--e), width var(--t-fast) var(--e);
+}
+.burger-bars i:last-child { width: 65%; }
+.burger:hover .burger-bars i:last-child { width: 100%; }
+
+/* =========================================================
+   右侧抽屉菜单
+   ---------------------------------------------------------
+   结构：.menu（固定容器，不铺底色）
+         ├ .menu-veil  左侧遮罩，点击关闭
+         └ .menu-panel 右侧抽屉，translateX 推入
+   两个坑写在这：
+   1) .menu-panel 上的 transform 会形成包含块，所以关闭按钮放在
+      「不滚动」的 panel 上、滚动交给内层 .menu-body —— 否则按钮会跟着内容滚走。
+   2) 抽屉宽度 clamp(400px, 37.5vw, 540px)：比例取自参考站（1440 时 540px），
+      840px 以下退化成整屏（该断点写在文件末尾「响应式」区，别在这重复定义）。
+   ========================================================= */
+.menu {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-menu);
+  visibility: hidden;
+  pointer-events: none;
+  transition: visibility 0s linear .72s;
+}
+.menu.is-open {
+  visibility: visible;
+  pointer-events: auto;
+  transition: visibility 0s;
+}
+
+.menu-veil {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 11, 13, .58);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  opacity: 0;
+  transition: opacity .55s var(--e);
+}
+.menu.is-open .menu-veil { opacity: 1; }
+
+/* 抽屉宽度与内边距也照参考站的比例来：
+   面板 37.5vw（1440 时 540px）、左右各 7.5vw 内边距（1440 时 108px）。
+   字号调到 60.48px 之后，原来 620px 宽 + 49px 内边距会让导航贴着左边框，
+   和参考站那种「大字号 + 左侧留白」的呼吸感差一截。 */
+.menu-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: clamp(400px, 37.5vw, 540px);
+  background: var(--dark);
+  color: var(--white);
+  overflow: hidden;
+  transform: translateX(100%);
+  transition: transform .72s var(--e);
+}
+.menu.is-open .menu-panel { transform: translateX(0); }
+
+.menu-body {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  /* 这里自己不再滚动：导航交给内层 .menu-scroll，
+     底部「联系方式」独立成块（.menu-bottom），
+     这样视口再矮也只会让导航区滚动，底部那块不会被顶走。 */
+  overflow: hidden;
+  padding: clamp(56px, 10vh, 112px) clamp(26px, 7.5vw, 108px) clamp(20px, 5vh, 56px);
+}
+
+/* 抽屉里唯一可滚动的区域：只剩导航。
+   导航块在这块空间里「垂直居中」—— 用的不是容器的 justify-content:center，
+   而是子项的 margin-block:auto：
+     · auto margin 会把上下剩余空间对半分，视觉上就是上下居中；
+     · 内容超高时（矮视口 / 横屏）auto margin 自己塌成 0，顶部不会被顶到
+       滚动区外面去、滚不回来 —— 这正是 justify-content:center 会踩的坑。 */
+.menu-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.menu-scroll > .menu-sec { margin-block: auto; }
+.menu-title { flex: 0 0 auto; }
+
+/* 栏目标题：等宽小字 + 细分隔线（参考站就是这个结构）。
+   .menu-title 是「导航」标题从居中块里拆出来、单独贴在面板最上方（关闭按钮下方）
+   的那一份：样式与栏目标题完全一致，只是不参与垂直居中、也不跟导航项一起滚动。 */
+.menu-sec h5,
+.menu-title {
+  margin: 0 0 clamp(12px, 2.7vh, var(--sp-5));
+  padding-bottom: var(--sp-4);
+  border-bottom: 1px solid var(--border-soft);
+  color: var(--gray);
+}
+/* 抽屉底部块：不参与伸缩（flex 0 0 auto），永远贴在面板最下方。
+   原「社交」在这儿的 margin-top 是给块与块之间留空的，
+   现在它自己就是底部，改成与导航区的最小间距即可。 */
+.menu-bottom {
+  flex: 0 0 auto;
+  /* 上间距用高度换算：正常视口仍是 48px，矮视口（横屏手机）自动收到 16px，
+     把省下来的高度让给中间的导航区。 */
+  margin-top: clamp(16px, 5.4vh, var(--sp-7));
+}
+
+/* 菜单项：居中 + 放大字号字重（本轮按标注调）
+   1) 居中：给 ul 加 text-align:center，a 是 inline-block 自然居中。
+      圆点改成绝对定位挂在文字块「左侧外部」（left:-18px），不占布局宽度 ——
+      否则选中时的 padding-left 会把居中的文字重新推偏。
+   2) 字号字重：60.48px/400 → 64.8px/500（选中 600）；行距 85px → 约 105px。
+   3) 未选中 = 纯 #ffffff（旧值用 opacity .55 压成灰，看着像禁用态）；
+      选中靠「品牌蓝 + 圆点 + 字重」三重区分，hover 只浮圆点、颜色保持白。
+   4) 间距：原来 li + li 只给 clamp(4px,.9vw,12px)，宽屏 12px、窄屏 4px，
+      三项几乎贴在一起像一整段文字。改由 flex 的 gap 统一给：三项天然等距，
+      间距本身也拉大（1440 下 34.6px，加上行高 90.7px 后步进约 125px）。 */
+.menu-list {
+  display: flex;
+  flex-direction: column;
+  /* vh 上限：窗口被拉矮时间距跟着收，不靠断点跳变。
+     4.2vh 在 900 高时是 37.8px > 34.56px，所以常规桌面完全不受影响。 */
+  gap: min(clamp(18px, 2.4vw, 36px), 4.2vh);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  text-align: center;
+}
+.menu-list a {
+  position: relative;
+  display: inline-block;
+  /* 字号同样挂一个 vh 上限（8.4vh）：正常桌面 66.24px < 75.6px 不受影响，
+     窗口压矮 / 手机横屏时平滑缩小 —— 比"某个高度以下整体换一套字号"的断点写法好，
+     不会有 700 高时 47px、600 高时突然掉到 27px 那种断崖。
+     系数取到 8.4 是拿手机横屏（844×390 / 740×420）反推的：
+     再大一点，标题 + 三项就比导航区高，auto margin 塌成 0、又变回"要滚才看全"。 */
+  font-size: min(clamp(2.35rem, 4.6vw, 4.05rem), 8.4vh);
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: -.025em;
+  color: #ffffff;
+  transition: color var(--t-fast) var(--e);
+}
+.menu-list a::before {
+  content: "";
+  position: absolute;
+  left: -18px;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  margin-top: -4px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0;
+  transform: scale(.4);
+  transition: opacity var(--t-fast) var(--e), transform var(--t-fast) var(--e);
+}
+.menu-list a:hover::before,
+.menu-list a.is-active::before { opacity: 1; transform: scale(1); }
+.menu-list a.is-active { color: var(--blue); font-weight: 600; }
+
+.menu-social {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3) var(--sp-6);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.menu-social a { color: var(--gray); font-size: var(--fs-small); }
+.menu-social a:hover { color: var(--white); }
+
+/* ---------------------------------------------------------
+   联系方式：点一下复制账号（菜单底部 + 页脚第 2 列共用）
+   ---------------------------------------------------------
+   一行里放「微信 Mr_Timon888」这样的按钮。
+   账号那一段做成两层叠在同一个 grid 格里：
+     默认显示账号 → hover 换成「点击复制」 → 点过之后换成「已复制」。
+   用 CSS 换字而不是 JS 改 textContent，切中英文时不会互相覆盖。
+   账号字号沿用参考站 socials 的档位（0.85em ≈ 14px）。
+   --------------------------------------------------------- */
+.ct-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px var(--sp-6);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ct-btn {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+  padding: 3px 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: var(--fs-small);
+  line-height: 1.6;
+  color: var(--white);
+  text-align: left;
+  cursor: pointer;
+  transition: color var(--t-fast) var(--e);
+}
+.ct-btn .ct-k { color: var(--white); }
+
+.ct-swap {
+  display: inline-grid;
+  position: relative;          /* hover 提示的定位参照 */
+  font-family: var(--font-mono);
+  font-size: .82em;
+  letter-spacing: .01em;
+}
+.ct-swap > * { grid-area: 1 / 1; white-space: nowrap; }
+/* hover 提示（点击复制 / 已复制）绝对定位，不参与宽度计算。
+   它是叠在账号上面换字的，若按网格参与布局，宽度会取「账号」与「提示」的较大者 ——
+   英文 "Click to copy" 比中文「点击复制」宽一截，每个账号就被撑宽，
+   窄面板里两条账号从一行挤成两行（实测 844×390 底部块 74 → 107px），
+   把导航区压到需要滚动。绝对定位后宽度只由账号本身决定，两种语言同宽。 */
+.ct-swap .ct-hint { position: absolute; left: 0; top: 0; }
+.ct-swap .ct-v { color: var(--gray); transition: opacity .28s var(--e); }
+.ct-swap .ct-hint { opacity: 0; transition: opacity .28s var(--e); }
+.ct-hint { display: inline-grid; }
+.ct-hint > * { grid-area: 1 / 1; white-space: nowrap; transition: opacity .28s var(--e); }
+.ct-hint .ct-hint-on { opacity: 0; }
+
+.ct-btn:hover .ct-swap .ct-v,
+.ct-btn[data-copied] .ct-swap .ct-v { opacity: 0; }
+.ct-btn:hover .ct-swap .ct-hint,
+.ct-btn[data-copied] .ct-swap .ct-hint { opacity: 1; color: var(--white); }
+.ct-btn[data-copied] .ct-swap .ct-hint { color: var(--blue); }
+.ct-btn[data-copied] .ct-hint-on { opacity: 1; }
+.ct-btn[data-copied] .ct-hint-off { opacity: 0; }
+
+/* 页脚那一列：竖排，行距比菜单里松一点 */
+.ct-list--col { display: block; gap: 0; }
+.ct-list--col li + li { margin-top: 5px; }
+
+/* 复制结果提示条：底部居中，层级压在菜单（90）之上 */
+.copy-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  z-index: 150;
+  max-width: min(520px, calc(100vw - 40px));
+  padding: 12px 22px;
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, .96);
+  color: #14161a;
+  font-size: var(--fs-label);
+  letter-spacing: .04em;
+  /* .mono 会转大写 —— 账号是大小写敏感的（Mr_Timon888），这里必须关掉 */
+  text-transform: none;
+  text-align: center;
+  opacity: 0;
+  transform: translate(-50%, 14px);
+  pointer-events: none;
+  transition: opacity .3s var(--e), transform .45s var(--e-out);
+}
+.copy-toast.is-on { opacity: 1; transform: translate(-50%, 0); }
+.copy-toast.is-error { background: #FFD9D9; color: #7A1414; }
+
+/* 原「抽屉底部信息」（所在地 + 地球点 / 署名 / OPEN TO WORK 时钟）已按要求整块删除，
+   底部由「联系方式」独占。文案槽位 menuCredit 也从后台「导航与菜单」里撤掉了；
+   locLabel / city / availability 仍被首屏与页脚使用，保留。
+   删除后版式：导航区 flex:1 撑开，底部块贴底，中间的空当由 flex 自然吸收，不留残桩。 */
+
+/* 关闭按钮：蓝色实心圆 */
+.menu-close {
+  position: absolute;
+  top: clamp(20px, 3vh, 30px);
+  right: clamp(20px, 3vw, 34px);
+  width: clamp(44px, 3.4vw, 50px);
+  height: clamp(44px, 3.4vw, 50px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--blue);
+  color: #fff;
+  transition: background-color var(--t-fast) var(--e), transform var(--t-fast) var(--e);
+}
+.menu-close:hover { background: var(--blue-dark); transform: rotate(90deg); }
+.menu-close svg { display: block; width: 16px; height: 16px; }
+
+/* =========================================================
+   页脚
+   ========================================================= */
+.site-foot {
+  position: relative;
+  background: var(--bg-alt);
+  padding-top: var(--sec-y-sm);
+  overflow: hidden;
+}
+.foot-cta-wrap { display: flex; flex-direction: column; gap: var(--sp-6); }
+.foot-cta {
+  font-size: var(--fs-h1);
+  line-height: var(--lh-title);
+  letter-spacing: -0.026em;
+  font-weight: 500;
+}
+/* CTA 标题里的内联头像（DNS 的做法，很讨巧） */
+.inline-pic {
+  display: inline-block;
+  width: 0.78em; height: 0.78em;
+  border-radius: 50%;
+  background: var(--accent) center/cover no-repeat;
+  vertical-align: -0.06em;
+  margin-right: 0.18em;
+  overflow: hidden;
+}
+.inline-pic img { width: 100%; height: 100%; object-fit: cover; }
+
+.foot-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-4);
+  align-items: center;
+}
+/* 邮箱/电话做成描边胶囊按钮 */
+.foot-link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: 14px 26px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  font-size: var(--fs-small);
+}
+.foot-link .fl-fill {
+  position: absolute;
+  inset: 0;
+  background: var(--accent);
+  transform: translateY(101%);
+  transition: transform var(--t-mid) var(--e);
+  z-index: 0;
+}
+.foot-link:hover .fl-fill { transform: translateY(0); }
+.foot-link > * { position: relative; z-index: 1; }
+
+.foot-meta {
+  display: grid;
+  /* 只剩「联系方式 / 社交账号」两列。原来是 repeat(auto-fit, minmax(190px, 1fr))，
+     宽屏下会铺出 4 条轨道（空两条）—— 两列被拉到容器两端，右侧再留一片空白。
+     这里显式两列 + 总宽上限，保持原先每列的宽度节奏，整块仍然靠左对齐。 */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 640px;
+  gap: var(--sp-6);
+  padding-top: var(--sp-7);
+}
+.foot-col h5 { margin-bottom: var(--sp-4); color: var(--fg-muted); }
+.foot-col p { font-size: var(--fs-small); color: var(--fg-muted); margin-bottom: 6px; }
+.foot-col p.is-strong { color: var(--fg); }
+.foot-col a:hover { color: var(--accent); }
+
+.live-dot {
+  display: inline-block;
+  width: 7px; height: 7px;
+  margin-right: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: pulse 2.4s var(--e) infinite;
+}
+
+.foot-bottom {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  margin-top: var(--sp-7);
+  padding-block: var(--sp-6);
+  border-top: 1px solid var(--border-soft);
+  color: var(--fg-muted);
+}
+
+/* 技能跑马灯 */
+.marquee {
+  position: relative;
+  display: flex;
+  overflow: hidden;
+  padding-block: var(--sp-6);
+  border-block: 1px solid var(--border-soft);
+  user-select: none;
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+.marquee-track {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-7);
+  flex: 0 0 auto;
+  padding-right: var(--sp-7);
+  animation: marquee 42s linear infinite;
+  will-change: transform;
+}
+.marquee:hover .marquee-track { animation-play-state: paused; }
+.marquee-track > span {
+  font-size: clamp(1.4rem, 3vw, 2.6rem);
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  opacity: .5;
+  transition: opacity var(--t-fast) var(--e);
+}
+.marquee-track > span:hover { opacity: 1; }
+.marquee-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex: 0 0 auto;
+}
+@keyframes marquee {
+  to { transform: translateX(-50%); }
+}
+
+/* =========================================================
+   进场加载层
+   ========================================================= */
+.loader {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-loader);
+  background: var(--dark);
+  color: var(--white);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+html:not(.is-loading) .loader { pointer-events: none; }
+/* [hidden] 必须显式补：.loader 的 display:grid 是 author 样式，
+   会压过 UA 默认的 [hidden]{display:none} —— 只设属性不写这条，加载层照样铺满全屏。 */
+.loader[hidden] { display: none; }
+
+/* 上下两块圆角面板，加载完向两侧翻开 */
+.loader-panel {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 50.5%;
+  background: var(--dark);
+  transition: transform 1s var(--e);
+}
+.loader-panel--top { top: 0; transform: translateY(0); }
+.loader-panel--bot { bottom: 0; transform: translateY(0); }
+.loader.is-done .loader-panel--top { transform: translateY(-101%); }
+.loader.is-done .loader-panel--bot { transform: translateY(101%); }
+.loader.is-done { background: transparent; transition: background-color 0s linear .55s; }
+
+.loader-core {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-5);
+  transition: opacity .35s var(--e), transform .5s var(--e);
+}
+.loader.is-done .loader-core { opacity: 0; transform: translateY(-14px); }
+
+/* 问候语轮播：同一位置交叉淡入
+   nowrap 必须加：容器宽由 min-width 撑（8ch ≈ 4.6em），
+   こんにちは/안녕하세요 是 5 个全角字（5em），不锁行会被挤成两行 */
+.loader-words {
+  position: relative;
+  height: 1.25em;
+  min-width: 8ch;
+  white-space: nowrap;
+  font-size: clamp(1.5rem, 3.4vw, 2.6rem);
+  letter-spacing: -0.02em;
+}
+.loader-word {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  opacity: 0;
+  transform: translateY(0.5em);
+  transition: opacity .22s var(--e), transform .34s var(--e);
+}
+.loader-word.is-on { opacity: 1; transform: none; }
+.loader-word.is-out { opacity: 0; transform: translateY(-0.5em); }
+
+.loader-bar {
+  display: block;
+  width: min(240px, 52vw);
+  height: 1px;
+  background: rgba(255,255,255,.16);
+  overflow: hidden;
+}
+.loader-bar span {
+  display: block;
+  height: 100%;
+  background: var(--blue);
+  transform: scaleX(0);
+  transform-origin: left center;
+}
+.loader-num {
+  font-family: var(--font-mono);
+  font-size: var(--fs-label);
+  letter-spacing: var(--ls-label);
+  color: rgba(255,255,255,.55);
+}
+.loader-num em { font-style: normal; }
+
+/* =========================================================
+   自定义光标
+   ========================================================= */
+.cursor {
+  position: fixed;
+  top: 0; left: 0;
+  z-index: var(--z-cursor);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .3s ease;
+  mix-blend-mode: difference;   /* 深浅底都能看清 */
+}
+.cursor.is-awake { opacity: 1; }
+.cur-dot, .cur-ring {
+  position: absolute;
+  top: 0; left: 0;
+  border-radius: 50%;
+  transform: translate3d(0,0,0);
+}
+.cur-dot {
+  width: 6px; height: 6px;
+  margin: -3px 0 0 -3px;
+  background: #fff;
+}
+.cur-ring {
+  width: 38px; height: 38px;
+  margin: -19px 0 0 -19px;
+  border: 1px solid rgba(255,255,255,.75);
+  transition: width .35s var(--e), height .35s var(--e),
+              margin .35s var(--e), border-color .35s var(--e),
+              background-color .35s var(--e);
+}
+/* 悬停链接：圆环收紧 */
+.cursor.is-link .cur-ring {
+  width: 58px; height: 58px;
+  margin: -29px 0 0 -29px;
+  border-color: #fff;
+}
+/* 悬停作品行：圆环撑成实心，里面写 View */
+.cursor.is-media .cur-ring {
+  width: 84px; height: 84px;
+  margin: -42px 0 0 -42px;
+  background: #fff;
+  border-color: #fff;
+}
+.cursor.is-media .cur-dot { opacity: 0; }
+.cur-label {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: #000;
+  opacity: 0;
+  transition: opacity .25s var(--e);
+}
+.cursor.is-media .cur-label { opacity: 1; }
+/* 触屏 / 减少动效：彻底不显示 */
+html:not(.has-cursor) .cursor { display: none; }
+
+/* =========================================================
+   鼠标跟随的作品预览图
+   ========================================================= */
+.hover-preview {
+  position: fixed;
+  top: 0; left: 0;
+  z-index: var(--z-preview);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .35s var(--e);
+  will-change: transform;
+}
+.hover-preview.is-on { opacity: 1; }
+.hp-inner {
+  position: relative;
+  width: clamp(180px, 17vw, 268px);
+  min-height: 120px;
+  border-radius: var(--r-md);
+  overflow: hidden;
+  background: var(--dark-dark);
+  transform: scale(.86);
+  transition: transform .55s var(--e);
+  will-change: transform;
+}
+.hover-preview.is-on .hp-inner { transform: scale(1); }
+.hp-item {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transform: scale(1.08);
+  transition: opacity .38s var(--e), transform .62s var(--e);
+}
+/* 当前项转回文档流撑起真实高度——预览框按这张图自身的比例走；
+   其余项绝对定位叠在底下，切换时仍保留交叉淡入淡出 */
+.hp-item.is-on {
+  position: relative;
+  inset: auto;
+  opacity: 1;
+  transform: none;
+}
+/* 高度跟随图片原始比例；超过视口 72vh 才按 cover 裁切兜底 */
+.hp-item img { width: 100%; height: auto; max-height: 72vh; object-fit: cover; display: block; }
+.hp-ph {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: 120px;
+  aspect-ratio: 4 / 3;
+  padding: var(--sp-4);
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.5);
+  background:
+    repeating-linear-gradient(45deg, rgba(255,255,255,.04) 0 8px, transparent 8px 16px),
+    var(--dark-dark);
+}
+
+/* =========================================================
+   页面切换转场
+   ========================================================= */
+.page-wipe {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-wipe);
+  pointer-events: none;
+  visibility: hidden;
+  overflow: hidden;
+}
+.page-wipe.is-active { visibility: visible; }
+.wipe-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  fill: var(--white);
+}
+.wipe-path { vector-effect: non-scaling-stroke; }
+
+/* 页面刚进入时整体淡入（避免转场退场时看到内容闪一下） */
+main, .site-foot { transition: opacity .5s var(--e); }
+
+/* 新页面带着转场标记加载：SVG 初始 path 本身就是整片白幕。
+   不再把 main/footer 设 opacity:0：白幕退出已完全遮住内容，额外 opacity 过渡会和
+   path 同帧更新产生“白幕开了但内容还没跟上”的黑闪。 */
+html.is-wiping .loader { display: none; }
+html.is-wiping .page-wipe { visibility: visible; }
+
+/* 白幕中心的目标页名：整屏变白后出现，停留后再转场。
+   字体与菜单导航一致（Site Sans 主字体，不再走 mono 标签）；
+   字号约为画面短边的 1/10（上限 92px），黑色大写，place-items 即视觉中心。 */
+.wipe-label {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  color: var(--dark);
+  font-family: var(--font-sans);
+  font-size: min(10svh, 10svw, 92px);
+  font-weight: 500;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  line-height: 1;
+  opacity: 0;
+  transition: opacity .22s var(--e-soft) .08s;
+}
+.page-wipe.is-hold .wipe-label { opacity: 1; }
+.wipe-page { display: none; }
+.wipe-page.is-on { display: inline-flex; align-items: center; }
+/* 前导圆点不用文本字符「·」（字形墨点太小、放大字号也几乎不变），
+   改用 CSS 画的实心圆：直径 .16em 随主字号等比缩放（90px 主字 ≈ 14px 圆点），
+   vertical-align 中线对齐字行，间距同样按 em 走。 */
+.wipe-page .cp-zh::before,
+.wipe-page .cp-en::before {
+  content: '';
+  display: inline-block;
+  width: .2em;
+  height: .2em;
+  border-radius: 50%;
+  background: currentColor;
+  vertical-align: middle;
+  margin-right: .22em;
+  margin-top: -.06em;
+}
+
+/* 网格视图下不需要鼠标跟随预览 */
+.hover-preview.is-hidden { display: none; }
+
+/* =========================================================
+   响应式
+   ========================================================= */
+@media (max-width: 840px) {
+  .row { gap: var(--sp-5); }
+  .col--1-2, .col--1-3, .col--2-3, .col--1-4 {
+    flex: 1 1 100%;
+    max-width: 100%;
+  }
+  .sec-head { flex-direction: column; align-items: flex-start; }
+  .site-head { padding-block: var(--sp-3); }
+  .head-logo .who { display: none; }
+  .nav-btn:not(.nav-btn--cta) { display: none; }
+  /* 抽屉菜单：窄屏退化成整屏（仍从右侧推入，不是从上盖下） */
+  .menu-panel { width: 100%; }
+  .menu-body { padding-top: clamp(56px, 9vh, 88px); }
+  .menu-list a { font-size: min(clamp(2.1rem, 8vw, 3.2rem), 8.4vh); }
+  .menu-bottom { margin-top: clamp(16px, 5.4vh, var(--sp-6)); }
+}
+
+@media (max-width: 620px) {
+  .marquee { padding-block: var(--sp-5); }
+  .foot-actions { width: 100%; }
+  .foot-link { flex: 1 1 100%; justify-content: space-between; }
+  /* 页脚信息区只剩两列，窄屏直接堆叠比挤成两根窄柱好读 */
+  .foot-meta { grid-template-columns: 1fr; }
+}

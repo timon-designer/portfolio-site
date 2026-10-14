@@ -1,0 +1,146 @@
+/* =========================================================
+   01 · 设计令牌
+   ---------------------------------------------------------
+   全站的「手感旋钮」都在这。改这里 = 全站一起变。
+   数值取自参考站 dennissnellenberg.com 的原值。
+   ========================================================= */
+
+:root {
+
+  /* ---------- 原始色板 ---------- */
+  --dark:        #1C1D20;   /* 主背景 */
+  --dark-dark:   #141517;   /* 交替区块 / 页脚 */
+  --white:       #FFFFFF;
+  --lightgray:   #E9EAEB;   /* 浅色区块底 */
+  --gray:        #999D9E;   /* 次级文字 */
+  --blue:        #455CE9;   /* 强调色，全站大约只用 8 处 */
+  --blue-dark:   #334BD3;   /* 强调色 hover */
+
+  /* ---------- 语义色（跟随主题切换） ---------- */
+  --bg:          var(--dark);
+  --bg-alt:      var(--dark-dark);
+  --fg:          var(--white);
+  --fg-muted:    var(--gray);
+  --fg-dim:      rgba(255, 255, 255, 0.45);
+  --border:      rgba(255, 255, 255, 0.22);
+  --border-soft: rgba(255, 255, 255, 0.13);
+  --accent:      var(--blue);
+  --accent-fg:   var(--white);
+
+  /* 悬浮 / 高亮行的底色 */
+  --row-hover:   rgba(255, 255, 255, 0.035);
+  /* 卡片 / 媒体块表面：抬到比页面底色亮一档，
+     深底上「深色块叠深色块」没有边界就是没对比 */
+  --surface:     rgba(255, 255, 255, 0.055);
+
+  /* ---------- 字体 ---------- */
+  /* 参考站用 Neue Montreal（商业字体，不能随项目分发）。
+     这里用 Inter Tight 自托管替代，观感最接近且可商用。 */
+  --font-sans: 'Site Sans', -apple-system, BlinkMacSystemFont, 'PingFang SC',
+               'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'Site Mono', ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+
+  /* ---------- 字阶 ---------- */
+  /* 超大：首页名字。参考站原值 ~17.5vw，对中文人名偏大，
+     收到 12.6vw 让名字右侧留出地球挂件的位置 */
+  --fs-mega:   clamp(3.2rem, 12.6vw, 13.5rem);
+  /* 一级标题（区块标题） */
+  --fs-h1:     clamp(2.4rem, 6.6vw, 6.4rem);
+  /* 二级标题（作品详情大标题） */
+  --fs-h2:     clamp(2.2rem, 5.4vw, 5.2rem);
+  /* 三级标题（列表行项目名） */
+  --fs-h3:     clamp(1.6rem, 3.2vw, 3.4rem);
+  /* 首屏大字 */
+  --fs-lead:   clamp(1.25rem, 2.5vw, 2.35rem);
+  /* 正文 */
+  --fs-body:   clamp(0.95rem, 1.02vw, 1.0625rem);
+  --fs-small:  0.875rem;
+  /* 等宽标签 */
+  --fs-label:  0.75rem;
+
+  --lh-tight:  0.94;
+  --lh-title:  1.04;
+  --lh-body:   1.62;
+  --ls-mega:   -0.03em;   /* 大字收紧字距，越大收越紧 */
+  --ls-label:  0.09em;    /* 等宽小标签放字距 */
+
+  /* ---------- 间距 ---------- */
+  --sp-1:  4px;
+  --sp-2:  8px;
+  --sp-3:  12px;
+  --sp-4:  16px;
+  --sp-5:  24px;
+  --sp-6:  32px;
+  --sp-7:  48px;
+  --sp-8:  64px;
+  --sp-9:  96px;
+  --sp-10: 128px;
+
+  /* 主标题 → 灰色副行 之间的间距（作品详情大标题、关于页大标题、404 标题）
+     标题字号是流式的，副行跟它同组渲染、行高又紧（1.04），不给间距会直接贴在一起。
+     所以用 em 跟着标题字号走，两端收在阶梯上：小屏 --sp-2(8px) → 桌面 --sp-4(16px)。 */
+  --gap-title-sub: clamp(8px, 0.2em, 16px);
+
+  /* 区块上下留白
+     旧值 10vw 在 1440 宽下每侧 144px，相邻区块叠加出 288px 空洞；
+     收到 7vw（1440 时约 101px），呼吸感保留、空洞消失 */
+  --sec-y:   clamp(56px, 7vw, 120px);
+  --sec-y-sm: clamp(40px, 5vw, 72px);
+
+  /* 页面左右留白 */
+  --pad-x:   clamp(18px, 4vw, 64px);
+  --max-w:   1720px;
+  --max-w-text: 1320px;
+
+  /* ---------- 圆角 ---------- */
+  --r-sm:  6px;
+  --r-md:  12px;
+  --r-lg:  22px;
+  --r-pill: 999px;
+
+  /* ---------- 动效 ---------- */
+  /* 分层节奏：微交互先确认，组件动作随后完成，场景动效保留呼吸感。 */
+  --e:       cubic-bezier(.2, 0, 0, 1);
+  --e-in:    cubic-bezier(.3, 0, 1, 1);
+  --e-out:   cubic-bezier(.16, 1, .3, 1);
+  --e-soft:  cubic-bezier(.4, 0, .2, 1);
+  --t-fast:  .2s;
+  --t-mid:   .34s;
+  --t-slow:  .68s;
+  --t-scene: .56s;
+
+  /* ---------- 层级 ---------- */
+  --z-preview: 40;
+  --z-head:    60;
+  --z-cursor:  80;
+  --z-menu:    90;
+  --z-wipe:    120;
+  --z-loader:  140;
+
+  /* ---------- 内容块高度 ---------- */
+  --head-h: 88px;
+}
+
+/* =========================================================
+   浅色区块：给任意 section 加 class="theme-light" 即可反转
+   （也支持在 <html data-theme="light"> 上全局切换）
+   ========================================================= */
+.theme-light,
+html[data-theme='light'] {
+  --bg:          var(--lightgray);
+  --bg-alt:      #DDDEDF;
+  --fg:          var(--dark);
+  --fg-muted:    #6C7071;
+  --fg-dim:      rgba(28, 29, 32, 0.5);
+  --border:      rgba(28, 29, 32, 0.2);
+  --border-soft: rgba(28, 29, 32, 0.1);
+  --row-hover:   rgba(28, 29, 32, 0.035);
+  --surface:     #DDDEDF;
+
+  background: var(--bg);
+  color: var(--fg);
+}
+
+/* 强调色的两个变体：点状 / 描边 */
+.accent { color: var(--accent); }
+.accent-bg { background: var(--accent); color: var(--accent-fg); }

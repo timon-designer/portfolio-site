@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://timon-designer.github.io/portfolio-site/sitemap.xml
