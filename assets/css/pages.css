@@ -7,11 +7,23 @@
    ========================================================= */
 .hero {
   position: relative;
+  /* 首屏「占满一屏」的视口高度链（顺序不能颠倒）：
+       · 100vh  —— 老浏览器兜底（视口高，含浏览器 UI）。
+       · 100svh —— 工具栏展开时的视口高。移动端加载那一刻地址栏是展开的，
+                   svh 恰好等于首屏可见高度 → 正好占满一屏，且之后不再变。
+     为什么不用 100dvh：它随地址栏收起/展开实时变化，会让首屏高度在滚动
+     过程中反复伸缩、把下面的区块顶来顶去（配合 .hero-bottom 的 margin-top:auto
+     还会看到跑马灯上下跳）。svh 是「加载瞬间就占满」的那个值。
+     ⚠️ 不要在窄屏断点里再用 min-height: auto 覆盖它 —— 那正是首屏占不满一屏的旧 bug。
+     左右/底部的刘海补偿见文件末尾「矮视口收敛」与 layout.css 的安全区注释。 */
+  min-height: 100vh;
   min-height: 100svh;
   display: flex;
   flex-direction: column;
+  /* --head-h(88px) 是给 fixed 元素兜底的「上界」，窄屏顶栏实测约 67px；
+     流内首屏用它算「顶栏 + 呼吸位」，多出来的余量当安全边距用。 */
   padding-top: calc(var(--head-h) + var(--sp-5));
-  padding-bottom: var(--sp-7);
+  padding-bottom: calc(var(--sp-7) + env(safe-area-inset-bottom, 0px));
   overflow: hidden;
   /* 显式写底色：背景 canvas 靠 mix-blend-mode 融合，需要一个确定的混合基准，
      不依赖 <body> 的绘制顺序 */
@@ -97,9 +109,17 @@
   text-transform: uppercase;
 }
 
-/* ---------- 中间：头像居中 ---------- */
+/* ---------- 中间：头像居中 ----------
+   高度模型（配了 avatar/portrait 才会渲染这一块，改前务必先看这段）：
+     · .hero-stage 用 flex-basis: 0 —— 头像的「固有高度」不参与首屏高度计算，
+       首屏高度只由 .hero 的 min-height: 100svh 决定，头像吃的是剩余空间。
+       原来写 flex: 1 1 auto，把 min-height 修好之后配一张竖图实测：
+       375x667 的屏首屏被顶到 714px（比一屏多 47px），
+       底部跑马灯和滚动提示直接掉出一屏。
+     · 头像高度靠 .hero-photo 的 height:100% + max-height 双约束，
+       配合 img 的 object-fit: contain —— 只等比缩放，永不拉伸变形。 */
 .hero-stage {
-  flex: 1 1 auto;
+  flex: 1 1 0;
   display: grid;
   place-items: center;
   padding-block: var(--sp-6);
@@ -107,6 +127,10 @@
 }
 .hero-photo {
   width: clamp(150px, 21vw, 320px);
+  /* 吃掉 .hero-stage 分到的空间，但不越出原来的观感上限（460px） */
+  height: 100%;
+  max-height: min(44vh, 460px);    /* 兜底：不认 svh 的浏览器 */
+  max-height: min(44svh, 460px);
   background: transparent;   /* 透明底 PNG 直接透出页面背景，不加底色 */
   overflow: hidden;
   will-change: transform;
@@ -114,12 +138,13 @@
 .hero-photo img {
   display: block;
   width: 100%;
-  height: auto;
-  max-height: clamp(180px, 44svh, 460px);
+  height: 100%;
+  /* contain：盒子比图片高/宽时等比缩放居中，绝不拉变形 */
   object-fit: contain;
 }
 .hero-photo .ph {
-  aspect-ratio: 3 / 4;
+  width: 100%;
+  height: 100%;
   border-radius: var(--r-md);
   background: var(--surface);
   border: 1px solid var(--border-soft);
@@ -662,6 +687,8 @@ a.contact-line:hover { color: var(--accent); transform: translateX(5px); }
    成功页 / 404
    ========================================================= */
 .center-page {
+  /* 与 .hero 同一套视口高度链（vh 兜底 → svh） */
+  min-height: 100vh;
   min-height: 100svh;
   display: grid;
   place-items: center;
@@ -716,7 +743,11 @@ a.contact-line:hover { color: var(--accent); transform: translateX(5px); }
 }
 
 @media (max-width: 720px) {
-  .hero { min-height: auto; padding-bottom: var(--sp-7); }
+  /* ⚠️ 这里曾经写着 .hero { min-height: auto }。
+     它把手机上的首屏压成「内容高度」：375x667 实测首屏只有 325px，
+     比一屏少了 342px（430x932 少 604px）—— 首屏下面露出一大片空白。
+     首屏在任何宽度都必须占满一屏，所以这条不许再加回来；
+     真正需要处理的只是「矮视口」下的内容溢出，见文件末尾 @media (max-height: 560px)。 */
   .hero-top { flex-wrap: wrap; gap: var(--sp-3); }
   .hero-globe .globe-loc { font-size: var(--fs-label); }
   .hero-role { font-size: var(--fs-small); }
@@ -727,4 +758,42 @@ a.contact-line:hover { color: var(--accent); transform: translateX(5px); }
   .svc-item { grid-template-columns: 1fr; }
   .svc-media { grid-column: auto; }
   .p-next { flex-direction: column; align-items: flex-start; }
+}
+
+/* =========================================================
+   矮视口收敛 —— 横屏手机 / 手机浏览器带地址栏时的动态视口 / 桌面窄窗
+   ---------------------------------------------------------
+   为什么要单独一档：.hero 是 overflow: hidden，而它本身只有 min-height
+   （不会靠内容长高）。内容固有高度一旦超过视口高度，超出部分就被硬裁掉 ——
+   实测 568x320 溢出 28px、800x360 溢出 27px，栽掉的正是底部跑马灯和滚动提示。
+
+   按「视口高度」收敛而不是「视口宽度」：横屏手机够宽（844/800px）却很矮
+   （390/360px），宽度断点完全管不到它 —— 800x360 那时早就不在 720px 档里了。
+
+   --vp-* 先给 vh（人人都有），支持 svh 的再覆盖成 svh：直接写 svh 会让
+   不支持的浏览器整条声明在解析期作废，字号掉回继承值、版面直接散掉。
+   ========================================================= */
+@media (max-height: 560px) {
+  .hero {
+    --vp-pad: 15vh;
+    --vp-font: 19vh;
+  }
+  @supports (height: 1svh) {
+    .hero {
+      --vp-pad: 15svh;
+      --vp-font: 19svh;
+    }
+  }
+  .hero {
+    /* 下限 76px = 窄屏固定顶栏实测 67px + 9px 呼吸位，保证内容不被顶栏压住 */
+    padding-top: clamp(76px, var(--vp-pad), calc(var(--head-h) + var(--sp-3)));
+    padding-bottom: calc(var(--sp-5) + env(safe-area-inset-bottom, 0px));
+  }
+  /* 超大标题是首屏最高的那一块，按视口高度压住它，其余留白才有余地 */
+  .hero-name { font-size: min(var(--fs-mega), var(--vp-font)); }
+  /* 横屏手机上竖构图头像没有容身之地：算过账，375px 高的屏扣掉顶栏/大标题/
+     滚动提示后只剩 ~50px 给头像，硬留着只是一条看不清的色带、还会挤压别的元素。
+     直接不渲染（首屏的视觉由背景光带 + 超大跑马灯承担）。 */
+  .hero-stage { display: none; }
+  .hero-cue { margin-top: var(--sp-4); }
 }

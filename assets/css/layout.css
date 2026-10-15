@@ -2,12 +2,17 @@
    03 · 布局层：容器、网格、页头、菜单、页脚、加载、光标、转场
    ========================================================= */
 
-/* ---------- 容器 ---------- */
+/* ---------- 容器 ----------
+   viewport-fit=cover 已开（index.html 的 viewport meta），但全站此前一处
+   env(safe-area-inset-*) 都没写：横屏刘海机（iPhone 12 起横屏左右各 47px）
+   会把内容压进刘海和圆角底下。这里统一补左右安全区 ——
+   非刘海设备 env() 一律为 0，桌面与普通机型完全不受影响。 */
 .container {
   width: 100%;
   max-width: var(--max-w);
   margin-inline: auto;
-  padding-inline: var(--pad-x);
+  padding-inline: calc(var(--pad-x) + env(safe-area-inset-left, 0px))
+                  calc(var(--pad-x) + env(safe-area-inset-right, 0px));
 }
 .container--medium { max-width: var(--max-w-text); }
 .container--narrow { max-width: 880px; }
@@ -83,7 +88,9 @@
   width: 100%;
   max-width: var(--max-w);
   margin-inline: auto;
-  padding-inline: var(--pad-x);
+  /* 与 .container 同一套左右安全区（页头是 fixed，不跟着 body 的 padding 走） */
+  padding-inline: calc(var(--pad-x) + env(safe-area-inset-left, 0px))
+                  calc(var(--pad-x) + env(safe-area-inset-right, 0px));
 }
 
 /* 左侧署名：© + 名字 */
@@ -227,7 +234,11 @@
      底部「联系方式」独立成块（.menu-bottom），
      这样视口再矮也只会让导航区滚动，底部那块不会被顶走。 */
   overflow: hidden;
-  padding: clamp(56px, 10vh, 112px) clamp(26px, 7.5vw, 108px) clamp(20px, 5vh, 56px);
+  /* 右侧是抽屉本体、窄屏退化成整屏，所以左右和底部都要让开刘海 / Home 指示条 */
+  padding: clamp(56px, 10vh, 112px)
+           calc(clamp(26px, 7.5vw, 108px) + env(safe-area-inset-right, 0px))
+           calc(clamp(20px, 5vh, 56px) + env(safe-area-inset-bottom, 0px))
+           calc(clamp(26px, 7.5vw, 108px) + env(safe-area-inset-left, 0px));
 }
 
 /* 抽屉里唯一可滚动的区域：只剩导航。
@@ -533,7 +544,8 @@
   justify-content: space-between;
   gap: var(--sp-4);
   margin-top: var(--sp-7);
-  padding-block: var(--sp-6);
+  /* 页脚最后一行：底部补 Home 指示条的安全区，版权行不会被它压住 */
+  padding-block: var(--sp-6) calc(var(--sp-6) + env(safe-area-inset-bottom, 0px));
   border-top: 1px solid var(--border-soft);
   color: var(--fg-muted);
 }
