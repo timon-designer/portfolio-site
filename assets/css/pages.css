@@ -575,7 +575,21 @@ html[data-opt-motion="off"] .globe-body { animation: none; }
 .tl-item.is-todo { opacity: .6; }
 .tl-item.is-current .tl-time { color: var(--accent); }
 
-/* 服务条目：编号 + 标题 + 正文 + 图 */
+/* =========================================================
+   服务条目（关于页「我能做什么」）：编号 + 文案 + 配图
+   ---------------------------------------------------------
+   默认（奇数列）：[ 编号 | 文案 | 配图 ]
+   相邻条目图文左右镜像，形成交替节奏 —— 见下面 min-width: 1001px 那段。
+
+   · 镜像只靠 CSS 换列位，DOM 顺序永远是「编号 → 文案 → 配图」，
+     屏幕阅读器与无样式环境拿到的都是同一份合理顺序。
+   · 交替刻意只在真正双栏并排的宽度上生效（min-width: 1001px，正好是
+     文件下方 @media (max-width: 1000px) 的补集）。1000px 及以下配图
+     落到文案下方，左/右已无意义，硬做交替只会让「有的图在上、有的图在下」。
+   · 编号跟着自己的文案走 —— 偶数条编号收到右外侧，与文案同侧，
+     两行各自贴住容器左右边，镜像才成立（编号若固定在最左，偶数条的
+     配图会被推离左边线，左边缘就参差了）。
+   ========================================================= */
 .svc-list { display: flex; flex-direction: column; }
 .svc-item {
   display: grid;
@@ -585,6 +599,16 @@ html[data-opt-motion="off"] .globe-body { animation: none; }
   padding-block: clamp(24px, 3vw, 40px);
   border-top: 1px solid var(--border-soft);
 }
+
+/* 偶数条：配图换到左列，文案居中，编号收到右外侧（order 只改排布顺序，
+   不影响 DOM 顺序） */
+@media (min-width: 1001px) {
+  .svc-item.is-alt { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; }
+  .svc-item.is-alt > .svc-media { order: 1; }
+  .svc-item.is-alt > .svc-text { order: 2; }
+  .svc-item.is-alt > .svc-num { order: 3; justify-self: end; }
+}
+
 .svc-num { color: var(--accent); padding-top: .55em; }
 .svc-title {
   font-size: clamp(1.35rem, 2.4vw, 2.1rem);
